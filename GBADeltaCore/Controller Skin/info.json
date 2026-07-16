@@ -327,8 +327,7 @@
               "extendedEdges": {
                 "right": 15
               },
-              "cap": "iphone_edgetoedge_portrait_cap_a.pdf",
-              "pressedCap": "iphone_edgetoedge_portrait_cap_a_pressed.pdf"
+              "cap": "iphone_edgetoedge_portrait_cap_a.pdf"
             },
             {
               "inputs": [
