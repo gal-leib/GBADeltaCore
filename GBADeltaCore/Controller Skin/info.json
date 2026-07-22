@@ -10,115 +10,139 @@
           "assets" : {
             "resizable" : "iphone_portrait.pdf"
           },
-          "items" : [
+          "items": [
             {
-              "inputs" : {
-                "up" : "up",
-                "down" : "down",
-                "left" : "left",
-                "right" : "right"
+              "asset": {
+                "name": "iphone_dpad.pdf"
               },
-              "frame" : {
-                "x" : 6,
-                "y" : 56,
-                "width" : 132,
-                "height" : 132
+              "inputs": {
+                "up": "up",
+                "down": "down",
+                "left": "left",
+                "right": "right"
               },
-              "extendedEdges" : {
-                "top" : 15,
-                "bottom" : 15,
-                "left" : 15,
-                "right" : 15
+              "frame": {
+                "x": 15,
+                "y": 61,
+                "width": 128,
+                "height": 128
+              },
+              "extendedEdges": {
+                "top": 15,
+                "bottom": 15,
+                "left": 15,
+                "right": 15
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_a.pdf"
+              },
+              "inputs": [
                 "a"
               ],
-              "frame" : {
-                "x" : 241,
-                "y" : 62,
-                "width" : 64,
-                "height" : 64
+              "frame": {
+                "x": 249,
+                "y": 74,
+                "width": 56,
+                "height": 56
               },
-              "extendedEdges" : {
-                "right" : 15
+              "extendedEdges": {
+                "right": 15
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_b.pdf"
+              },
+              "inputs": [
                 "b"
               ],
-              "frame" : {
-                "x" : 176,
-                "y" : 121,
-                "width" : 64,
-                "height" : 64
+              "frame": {
+                "x": 180,
+                "y": 120,
+                "width": 56,
+                "height": 56
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_l.pdf"
+              },
+              "inputs": [
                 "l"
               ],
-              "frame" : {
-                "x" : 0,
-                "y" : 0,
-                "width" : 97,
-                "height" : 29
+              "frame": {
+                "x": 0,
+                "y": 2,
+                "width": 108,
+                "height": 30
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_r.pdf"
+              },
+              "inputs": [
                 "r"
               ],
-              "frame" : {
-                "x" : 224,
-                "y" : 0,
-                "width" : 97,
-                "height" : 29
+              "frame": {
+                "x": 212,
+                "y": 2,
+                "width": 108,
+                "height": 30
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_start_select.pdf"
+              },
+              "inputs": [
                 "start"
               ],
-              "frame" : {
-                "x" : 176,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+              "frame": {
+                "x": 181,
+                "y": 204,
+                "width": 17,
+                "height": 17
               },
-              "extendedEdges" : {
-                "bottom" : 13
+              "extendedEdges": {
+                "bottom": 13
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_start_select.pdf"
+              },
+              "inputs": [
                 "select"
               ],
-              "frame" : {
-                "x" : 124,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+              "frame": {
+                "x": 125,
+                "y": 204,
+                "width": 17,
+                "height": 17
               },
-              "extendedEdges" : {
-                "bottom" : 13
+              "extendedEdges": {
+                "bottom": 13
               }
             },
             {
-              "inputs" : [
+              "asset": {
+                "name": "iphone_menu.pdf"
+              },
+              "inputs": [
                 "menu"
               ],
-              "frame" : {
-                "x" : 8,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+              "frame": {
+                "x": 17,
+                "y": 204,
+                "width": 17,
+                "height": 17
               },
-              "extendedEdges" : {
-                "left" : 8,
-                "bottom" : 13
+              "extendedEdges": {
+                "left": 8,
+                "bottom": 13
               }
             }
           ],
@@ -291,6 +315,9 @@
           },
           "items" : [
             {
+              "asset" : {
+                "name" : "iphone_dpad.pdf"
+              },
               "inputs" : {
                 "up" : "up",
                 "down" : "down",
@@ -298,10 +325,10 @@
                 "right" : "right"
               },
               "frame" : {
-                "x" : 6,
-                "y" : 56,
-                "width" : 132,
-                "height" : 132
+                "x" : 15,
+                "y" : 61,
+                "width" : 128,
+                "height" : 128
               },
               "extendedEdges" : {
                 "top" : 15,
@@ -311,89 +338,110 @@
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_a.pdf"
+              },
               "inputs" : [
                 "a"
               ],
               "frame" : {
-                "x" : 241,
-                "y" : 62,
-                "width" : 64,
-                "height" : 64
+                "x" : 249,
+                "y" : 74,
+                "width" : 56,
+                "height" : 56
               },
               "extendedEdges" : {
                 "right" : 15
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_b.pdf"
+              },
               "inputs" : [
                 "b"
               ],
               "frame" : {
-                "x" : 176,
-                "y" : 121,
-                "width" : 64,
-                "height" : 64
+                "x" : 180,
+                "y" : 120,
+                "width" : 56,
+                "height" : 56
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_l.pdf"
+              },
               "inputs" : [
                 "l"
               ],
               "frame" : {
                 "x" : 0,
-                "y" : 0,
-                "width" : 97,
-                "height" : 29
+                "y" : 2,
+                "width" : 108,
+                "height" : 30
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_r.pdf"
+              },
               "inputs" : [
                 "r"
               ],
               "frame" : {
-                "x" : 224,
-                "y" : 0,
-                "width" : 97,
-                "height" : 29
+                "x" : 212,
+                "y" : 2,
+                "width" : 108,
+                "height" : 30
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_start_select.pdf"
+              },
               "inputs" : [
                 "start"
               ],
               "frame" : {
-                "x" : 176,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+                "x" : 181,
+                "y" : 215,
+                "width" : 17,
+                "height" : 17
               },
               "extendedEdges" : {
                 "bottom" : 13
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_start_select.pdf"
+              },
               "inputs" : [
                 "select"
               ],
               "frame" : {
-                "x" : 124,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+                "x" : 125,
+                "y" : 215,
+                "width" : 17,
+                "height" : 17
               },
               "extendedEdges" : {
                 "bottom" : 13
               }
             },
             {
+              "asset" : {
+                "name" : "iphone_menu.pdf"
+              },
               "inputs" : [
                 "menu"
               ],
               "frame" : {
-                "x" : 8,
-                "y" : 205,
-                "width" : 21,
-                "height" : 21
+                "x" : 17,
+                "y" : 215,
+                "width" : 17,
+                "height" : 17
               },
               "extendedEdges" : {
                 "left" : 8,
