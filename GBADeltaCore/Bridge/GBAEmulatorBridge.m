@@ -135,6 +135,20 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 @synthesize videoRenderer = _videoRenderer;
 @synthesize saveUpdateHandler = _saveUpdateHandler;
 
+- (void)setVideoRenderer:(id<DLTAVideoRendering>)videoRenderer
+{
+    _videoRenderer = videoRenderer;
+    if (self.core && _videoRenderer.videoBuffer != NULL)
+    {
+        self.core->setVideoBuffer(self.core, (mColor *)_videoRenderer.videoBuffer, GBA_SCREEN_WIDTH);
+        if (self.rawVideoBuffer != NULL)
+        {
+            free(self.rawVideoBuffer);
+            self.rawVideoBuffer = NULL;
+        }
+    }
+}
+
 + (instancetype)sharedBridge
 {
     static GBAEmulatorBridge *_emulatorBridge = nil;
@@ -179,13 +193,32 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     }
     
     mCoreInitConfig(core, NULL);
+    
+    // Performance: Tune mGBA options for Delta's frame loop
+    core->opts.videoSync = false;
+    core->opts.audioSync = false;
+    core->opts.fpsTarget = 60.0f;
+    core->opts.sampleRate = 32768;
+    core->opts.audioBuffers = 1024;
+    core->opts.skipBios = true;
+    core->opts.useBios = false;
+    core->opts.rewindEnable = false;
+    core->opts.rewindBufferCapacity = 0;
+    
     core->init(core);
     
-    if (!self.rawVideoBuffer)
+    if (self.videoRenderer != nil && self.videoRenderer.videoBuffer != NULL)
     {
-        self.rawVideoBuffer = (uint32_t *)malloc(GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(uint32_t));
+        core->setVideoBuffer(core, (mColor *)self.videoRenderer.videoBuffer, GBA_SCREEN_WIDTH);
     }
-    core->setVideoBuffer(core, (mColor *)self.rawVideoBuffer, GBA_SCREEN_WIDTH);
+    else
+    {
+        if (!self.rawVideoBuffer)
+        {
+            self.rawVideoBuffer = (uint32_t *)malloc(GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(uint32_t));
+        }
+        core->setVideoBuffer(core, (mColor *)self.rawVideoBuffer, GBA_SCREEN_WIDTH);
+    }
     
     core->setAudioBufferSize(core, AUDIO_BUFFER_CAPACITY);
     self.audioBuffer = core->getAudioBuffer(core);
@@ -311,24 +344,31 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     
     if (processVideo && self.videoRenderer != nil)
     {
-        if (self.videoRenderer.videoBuffer != NULL && self.rawVideoBuffer != NULL)
+        // Zero-copy: ensure mGBA renders directly into Delta's display texture buffer
+        if (self.rawVideoBuffer != NULL && self.videoRenderer.videoBuffer != NULL)
         {
-            memcpy(self.videoRenderer.videoBuffer, self.rawVideoBuffer, GBA_SCREEN_WIDTH * GBA_SCREEN_HEIGHT * sizeof(uint32_t));
+            self.core->setVideoBuffer(self.core, (mColor *)self.videoRenderer.videoBuffer, GBA_SCREEN_WIDTH);
+            free(self.rawVideoBuffer);
+            self.rawVideoBuffer = NULL;
         }
         [self.videoRenderer processFrame];
     }
     
     if (self.audioRenderer != nil && self.audioBuffer != NULL)
     {
-        size_t available = mAudioBufferAvailable(self.audioBuffer);
-        if (available > 0)
+        int16_t samples[2048 * 2];
+        size_t available;
+        while ((available = mAudioBufferAvailable(self.audioBuffer)) > 0)
         {
-            int16_t samples[2048 * 2];
             size_t toRead = MIN(available, 2048);
             size_t readCount = mAudioBufferRead(self.audioBuffer, samples, toRead);
             if (readCount > 0)
             {
                 [self.audioRenderer.audioBuffer writeBuffer:(uint8_t *)samples size:(readCount * sizeof(int16_t) * 2)];
+            }
+            if (readCount < toRead)
+            {
+                break;
             }
         }
     }

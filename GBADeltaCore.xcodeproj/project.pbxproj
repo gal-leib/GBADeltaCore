@@ -832,6 +832,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -850,6 +851,8 @@
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				LLVM_LTO = YES_THIN;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -902,6 +905,8 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GCC_OPTIMIZATION_LEVEL = 3;
+				LLVM_LTO = YES_THIN;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"M_CORE_GBA",
@@ -965,6 +970,11 @@
 				);
 				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
+				LLVM_LTO = YES_THIN;
+				OTHER_CFLAGS = (
+					"-ffast-math",
+					"-funroll-loops",
+				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/mgba/include",
@@ -997,6 +1007,12 @@
 					"HAVE_XLOCALE",
 				);
 				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				LLVM_LTO = YES_THIN;
+				OTHER_CFLAGS = (
+					"-ffast-math",
+					"-funroll-loops",
+				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/mgba/include",
