@@ -5,6 +5,7 @@
 //  Created by Riley Testut on 6/2/16.
 //  Copyright © 2016 Riley Testut. All rights reserved.
 //
+#pragma once
 
 #import <UIKit/UIKit.h>
 
