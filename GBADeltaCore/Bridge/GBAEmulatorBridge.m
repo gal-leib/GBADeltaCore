@@ -164,6 +164,7 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     }
     
     mCoreInitConfig(core, NULL);
+    core->init(core);
     
     if (!self.rawVideoBuffer)
     {
@@ -198,11 +199,9 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     {
         NSLog(@"[GBADeltaCore/mGBA] Failed to load ROM at URL: %@", URL);
         core->deinit(core);
-        free(core);
         return;
     }
     
-    core->init(core);
     core->reset(core);
     
     self.core = core;
@@ -214,7 +213,6 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     if (self.core != NULL)
     {
         self.core->deinit(self.core);
-        free(self.core);
         self.core = NULL;
     }
     
