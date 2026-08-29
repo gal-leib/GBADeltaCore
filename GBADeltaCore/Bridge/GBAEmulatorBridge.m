@@ -27,6 +27,8 @@
 #include <mgba/internal/gba/sio/rfu-wan-session.h>
 #include <mgba/internal/gba/sio/wireless.h>
 #include <mgba-util/audio-buffer.h>
+#include <mgba-util/audio-resampler.h>
+#include <mgba-util/interpolator.h>
 #include <mgba-util/memory.h>
 #include <mgba-util/vfs.h>
 
@@ -130,6 +132,11 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     uint64_t _wirelessSessionId;
     NSLock *_inboundLock;
     NSMutableArray<NSData *> *_inboundDatagrams;
+    
+    struct mAudioResampler _audioResampler;
+    struct mAudioBuffer _resampledAudioBuffer;
+    unsigned _lastAudioSampleRate;
+    BOOL _audioResamplerInitialized;
 }
 @synthesize audioRenderer = _audioRenderer;
 @synthesize videoRenderer = _videoRenderer;
@@ -220,8 +227,27 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
         core->setVideoBuffer(core, (mColor *)self.rawVideoBuffer, GBA_SCREEN_WIDTH);
     }
     
-    core->setAudioBufferSize(core, AUDIO_BUFFER_CAPACITY);
+    core->setAudioBufferSize(core, 8192);
     self.audioBuffer = core->getAudioBuffer(core);
+    
+    if (!_audioResamplerInitialized)
+    {
+        mAudioBufferInit(&_resampledAudioBuffer, 8192, 2);
+        mAudioResamplerInit(&_audioResampler, mINTERPOLATOR_COSINE);
+        mAudioResamplerSetDestination(&_audioResampler, &_resampledAudioBuffer, 32768);
+        _audioResamplerInitialized = YES;
+    }
+    else
+    {
+        mAudioBufferClear(&_resampledAudioBuffer);
+    }
+    
+    _lastAudioSampleRate = core->audioSampleRate(core);
+    if (_lastAudioSampleRate == 0)
+    {
+        _lastAudioSampleRate = 32768;
+    }
+    mAudioResamplerSetSource(&_audioResampler, self.audioBuffer, _lastAudioSampleRate, true);
     
     // Peripherals
     memset(&_rotationSource, 0, sizeof(_rotationSource));
@@ -267,6 +293,13 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 - (void)stop
 {
     [self stopWireless];
+    
+    if (_audioResamplerInitialized)
+    {
+        mAudioResamplerDeinit(&_audioResampler);
+        mAudioBufferDeinit(&_resampledAudioBuffer);
+        _audioResamplerInitialized = NO;
+    }
     
     if (self.core != NULL)
     {
@@ -354,14 +387,23 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
         [self.videoRenderer processFrame];
     }
     
-    if (self.audioRenderer != nil && self.audioBuffer != NULL)
+    if (self.audioRenderer != nil && self.audioBuffer != NULL && _audioResamplerInitialized)
     {
+        unsigned currentRate = self.core->audioSampleRate(self.core);
+        if (currentRate > 0 && currentRate != _lastAudioSampleRate)
+        {
+            _lastAudioSampleRate = currentRate;
+            mAudioResamplerSetSource(&_audioResampler, self.audioBuffer, currentRate, true);
+        }
+        
+        mAudioResamplerProcess(&_audioResampler);
+        
         int16_t samples[2048 * 2];
         size_t available;
-        while ((available = mAudioBufferAvailable(self.audioBuffer)) > 0)
+        while ((available = mAudioBufferAvailable(&_resampledAudioBuffer)) > 0)
         {
             size_t toRead = MIN(available, 2048);
-            size_t readCount = mAudioBufferRead(self.audioBuffer, samples, toRead);
+            size_t readCount = mAudioBufferRead(&_resampledAudioBuffer, samples, toRead);
             if (readCount > 0)
             {
                 [self.audioRenderer.audioBuffer writeBuffer:(uint8_t *)samples size:(readCount * sizeof(int16_t) * 2)];
