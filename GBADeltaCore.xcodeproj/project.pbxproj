@@ -11,6 +11,7 @@
 		21B9D767B6F7F2C2B033BC2E /* DeltaCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B5A817BE14DC70CC47CE4FE; };
 		CE23006B752F57A07B3A4992 /* libmgba.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FA106BE9F34817CCECCF8E7F; };
 		F65CF96863C35301F4EAA1E9 /* GBA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6A346228646D7D6A8DFCE2 /* GBA.swift */; };
+		6A14ADDC98D4CD00DE39D741 /* GBAWirelessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59FDB08F1FC676AE8E058AFE /* GBAWirelessManager.swift */; };
 		162646F7F95C9486BAD66DFE /* GBAEmulatorBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = B0CAC701300C1DFE43490B66 /* GBAEmulatorBridge.m */; };
 		43FBC7C9EBDD9C8502B06B61 /* GBATypes.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FB6209809FDB5EF56D1E071 /* GBATypes.m */; };
 		92D06AED315F17AE0F36A1E9 /* GBADeltaCore.h in Headers */ = {isa = PBXBuildFile; fileRef = E71B2EFE66AFC131A2B255B0 /* GBADeltaCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -90,6 +91,11 @@
 		5D519E0824556CA2FB71EE5C /* sharkport.c in Sources */ = {isa = PBXBuildFile; fileRef = E38F9D8CB8FF80298DE7EC88 /* sharkport.c */; };
 		21F94FF4E4F0675868191AA6 /* sio.c in Sources */ = {isa = PBXBuildFile; fileRef = 9CFF1D9274C29A62BDFEF6AA /* sio.c */; };
 		E9A9136148581CD173CA0E64 /* gbp.c in Sources */ = {isa = PBXBuildFile; fileRef = B9F917D2E8A37EBC8A407163 /* gbp.c */; };
+		E5E33390F51438489CFDCE24 /* rfu-frames.c in Sources */ = {isa = PBXBuildFile; fileRef = CF0BBF34D67E829AB0AAE323 /* rfu-frames.c */; };
+		B66B522FFA5B4066ABA03110 /* rfu-network.c in Sources */ = {isa = PBXBuildFile; fileRef = 8FF2FC9401F8E9721033B1E1 /* rfu-network.c */; };
+		B5F441A626F94EA62372E82A /* rfu-slot-transport.c in Sources */ = {isa = PBXBuildFile; fileRef = 695C7A06AF9126A03F337C47 /* rfu-slot-transport.c */; };
+		047EC61ACA9BB26113FDD32E /* rfu-wan-session.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C5598244F0A659A33CFAB76 /* rfu-wan-session.c */; };
+		1AD3EEBB80CF2D009AA2515B /* wireless.c in Sources */ = {isa = PBXBuildFile; fileRef = D91E5F0C6A9610F75F9EAA77 /* wireless.c */; };
 		057A75E1612D2318F733142F /* timer.c in Sources */ = {isa = PBXBuildFile; fileRef = D0FA40E834C15F8F58F7A8F4 /* timer.c */; };
 		34A0C5B60AD82A560962C47E /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 0549F24CF68B71246E65D504 /* video.c */; };
 		EDC7293746B94D659F84C913 /* video-logger.c in Sources */ = {isa = PBXBuildFile; fileRef = 4C4B2EB40F59461F82C24864 /* video-logger.c */; };
@@ -163,6 +169,7 @@
 		FA106BE9F34817CCECCF8E7F /* libmgba.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmgba.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		34F5695BF8D07637DEDABED4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2C6A346228646D7D6A8DFCE2 /* GBA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GBA.swift; sourceTree = "<group>"; };
+		59FDB08F1FC676AE8E058AFE /* GBAWirelessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GBAWirelessManager.swift; sourceTree = "<group>"; };
 		B0CAC701300C1DFE43490B66 /* GBAEmulatorBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GBAEmulatorBridge.m; sourceTree = "<group>"; };
 		6FB6209809FDB5EF56D1E071 /* GBATypes.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GBATypes.m; sourceTree = "<group>"; };
 		E71B2EFE66AFC131A2B255B0 /* GBADeltaCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GBADeltaCore.h; sourceTree = "<group>"; };
@@ -242,6 +249,11 @@
 		E38F9D8CB8FF80298DE7EC88 /* sharkport.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "sharkport.c"; path = "mgba/src/gba/sharkport.c"; sourceTree = SOURCE_ROOT; };
 		9CFF1D9274C29A62BDFEF6AA /* sio.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "sio.c"; path = "mgba/src/gba/sio.c"; sourceTree = SOURCE_ROOT; };
 		B9F917D2E8A37EBC8A407163 /* gbp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "gbp.c"; path = "mgba/src/gba/sio/gbp.c"; sourceTree = SOURCE_ROOT; };
+		CF0BBF34D67E829AB0AAE323 /* rfu-frames.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "rfu-frames.c"; path = "mgba/src/gba/sio/rfu-frames.c"; sourceTree = SOURCE_ROOT; };
+		8FF2FC9401F8E9721033B1E1 /* rfu-network.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "rfu-network.c"; path = "mgba/src/gba/sio/rfu-network.c"; sourceTree = SOURCE_ROOT; };
+		695C7A06AF9126A03F337C47 /* rfu-slot-transport.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "rfu-slot-transport.c"; path = "mgba/src/gba/sio/rfu-slot-transport.c"; sourceTree = SOURCE_ROOT; };
+		7C5598244F0A659A33CFAB76 /* rfu-wan-session.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "rfu-wan-session.c"; path = "mgba/src/gba/sio/rfu-wan-session.c"; sourceTree = SOURCE_ROOT; };
+		D91E5F0C6A9610F75F9EAA77 /* wireless.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "wireless.c"; path = "mgba/src/gba/sio/wireless.c"; sourceTree = SOURCE_ROOT; };
 		D0FA40E834C15F8F58F7A8F4 /* timer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "timer.c"; path = "mgba/src/gba/timer.c"; sourceTree = SOURCE_ROOT; };
 		0549F24CF68B71246E65D504 /* video.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "video.c"; path = "mgba/src/gba/video.c"; sourceTree = SOURCE_ROOT; };
 		4C4B2EB40F59461F82C24864 /* video-logger.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "video-logger.c"; path = "mgba/src/feature/video-logger.c"; sourceTree = SOURCE_ROOT; };
@@ -319,6 +331,7 @@
 			isa = PBXGroup;
 			children = (
 				2C6A346228646D7D6A8DFCE2,
+				59FDB08F1FC676AE8E058AFE,
 				E71B2EFE66AFC131A2B255B0,
 				CDF57256D2DD49D3CDB1380E /* Bridge */,
 				FE6D7F7B967FABBBA86F27F4 /* Types */,
@@ -430,6 +443,11 @@
 				E38F9D8CB8FF80298DE7EC88,
 				9CFF1D9274C29A62BDFEF6AA,
 				B9F917D2E8A37EBC8A407163,
+				CF0BBF34D67E829AB0AAE323,
+				8FF2FC9401F8E9721033B1E1,
+				695C7A06AF9126A03F337C47,
+				7C5598244F0A659A33CFAB76,
+				D91E5F0C6A9610F75F9EAA77,
 				D0FA40E834C15F8F58F7A8F4,
 				0549F24CF68B71246E65D504,
 				4C4B2EB40F59461F82C24864,
@@ -638,6 +656,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F65CF96863C35301F4EAA1E9 /* GBA.swift in Sources */,
+				6A14ADDC98D4CD00DE39D741 /* GBAWirelessManager.swift in Sources */,
 				162646F7F95C9486BAD66DFE /* GBAEmulatorBridge.m in Sources */,
 				43FBC7C9EBDD9C8502B06B61 /* GBATypes.m in Sources */,
 			);
@@ -704,6 +723,11 @@
 				5D519E0824556CA2FB71EE5C /* sharkport.c in Sources */,
 				21F94FF4E4F0675868191AA6 /* sio.c in Sources */,
 				E9A9136148581CD173CA0E64 /* gbp.c in Sources */,
+				E5E33390F51438489CFDCE24 /* rfu-frames.c in Sources */,
+				B66B522FFA5B4066ABA03110 /* rfu-network.c in Sources */,
+				B5F441A626F94EA62372E82A /* rfu-slot-transport.c in Sources */,
+				047EC61ACA9BB26113FDD32E /* rfu-wan-session.c in Sources */,
+				1AD3EEBB80CF2D009AA2515B /* wireless.c in Sources */,
 				057A75E1612D2318F733142F /* timer.c in Sources */,
 				34A0C5B60AD82A560962C47E /* video.c in Sources */,
 				EDC7293746B94D659F84C913 /* video-logger.c in Sources */,

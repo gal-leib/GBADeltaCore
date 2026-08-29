@@ -22,6 +22,10 @@
 #include <mgba/internal/gba/gba.h>
 #include <mgba/internal/gba/cheats.h>
 #include <mgba/internal/gba/input.h>
+#include <mgba/internal/gba/sio.h>
+#include <mgba/internal/gba/sio/rfu-network.h>
+#include <mgba/internal/gba/sio/rfu-wan-session.h>
+#include <mgba/internal/gba/sio/wireless.h>
 #include <mgba-util/audio-buffer.h>
 #include <mgba-util/memory.h>
 #include <mgba-util/vfs.h>
@@ -118,6 +122,15 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 #pragma mark - Implementation -
 
 @implementation GBAEmulatorBridge
+{
+    struct GBASIOWireless _wirelessAdapter;
+    struct GBARfuWanSession _wanSession;
+    BOOL _wirelessRunning;
+    BOOL _wirelessIsHost;
+    uint64_t _wirelessSessionId;
+    NSLock *_inboundLock;
+    NSMutableArray<NSData *> *_inboundDatagrams;
+}
 @synthesize audioRenderer = _audioRenderer;
 @synthesize videoRenderer = _videoRenderer;
 @synthesize saveUpdateHandler = _saveUpdateHandler;
@@ -139,6 +152,8 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     if (self)
     {
         _motionManager = [[CMMotionManager alloc] init];
+        _inboundLock = [[NSLock alloc] init];
+        _inboundDatagrams = [[NSMutableArray alloc] init];
     }
     return self;
 }
@@ -210,6 +225,8 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 
 - (void)stop
 {
+    [self stopWireless];
+    
     if (self.core != NULL)
     {
         self.core->deinit(self.core);
@@ -244,6 +261,42 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     if (!self.core || !self.isEmulating)
     {
         return;
+    }
+    
+    if (_wirelessRunning)
+    {
+        // 1. Drain inbound queue into GBARfuWanSession
+        NSArray<NSData *> *pendingInbound = nil;
+        [_inboundLock lock];
+        if (_inboundDatagrams.count > 0)
+        {
+            pendingInbound = [_inboundDatagrams copy];
+            [_inboundDatagrams removeAllObjects];
+        }
+        [_inboundLock unlock];
+        
+        for (NSData *data in pendingInbound)
+        {
+            GBARfuWanSessionPushDatagram(&_wanSession, data.bytes, data.length);
+        }
+        
+        // 2. Advance WAN session clock (~16,743 us per frame)
+        GBARfuWanSessionAdvance(&_wanSession, 16743);
+        
+        // 3. Drain outbound datagrams from session
+        uint8_t outBuffer[GBA_RFU_WAN_DATAGRAM_SIZE];
+        size_t outSize;
+        while ((outSize = GBARfuWanSessionTakeDatagram(&_wanSession, outBuffer, sizeof(outBuffer))) > 0)
+        {
+            if (self.wirelessSendDatagramHandler != nil)
+            {
+                NSData *outData = [NSData dataWithBytes:outBuffer length:outSize];
+                self.wirelessSendDatagramHandler(outData);
+            }
+        }
+        
+        // 4. Poll wireless transport
+        GBASIOWirelessPollTransport(&_wirelessAdapter);
     }
     
     self.core->runFrame(self.core);
@@ -500,6 +553,137 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 - (NSTimeInterval)frameDuration
 {
     return (1.0 / 59.727500569606);
+}
+
+#pragma mark - Wireless Adapter (RFU) -
+
+- (BOOL)isWirelessActive
+{
+    return _wirelessRunning;
+}
+
+- (BOOL)isWirelessAdapterConnected
+{
+    return _wirelessRunning && _wirelessAdapter.connected;
+}
+
+- (BOOL)startWirelessWithHost:(BOOL)isHost sessionId:(uint64_t)sessionId
+{
+    if (!self.core || !self.isEmulating)
+    {
+        return NO;
+    }
+    
+    [self stopWireless];
+    
+    _wirelessIsHost = isHost;
+    _wirelessSessionId = sessionId;
+    if (isHost && _wirelessSessionId == 0)
+    {
+        arc4random_buf(&_wirelessSessionId, sizeof(_wirelessSessionId));
+        if (_wirelessSessionId == 0)
+        {
+            _wirelessSessionId = 1;
+        }
+    }
+    
+    uint16_t localId = isHost ? 0x62 : 0x61;
+    
+    GBASIOWirelessCreate(&_wirelessAdapter);
+    GBARfuWanSessionInit(&_wanSession, &_wirelessAdapter, isHost, _wirelessSessionId, localId);
+    
+    self.core->setPeripheral(self.core, mPERIPH_GBA_LINK_PORT, &_wirelessAdapter.d);
+    
+    _wirelessRunning = YES;
+    return YES;
+}
+
+- (void)stopWireless
+{
+    if (!_wirelessRunning)
+    {
+        return;
+    }
+    
+    _wirelessRunning = NO;
+    
+    if (self.core)
+    {
+        self.core->setPeripheral(self.core, mPERIPH_GBA_LINK_PORT, NULL);
+    }
+    
+    GBASIOWirelessDestroy(&_wirelessAdapter);
+    
+    [_inboundLock lock];
+    [_inboundDatagrams removeAllObjects];
+    [_inboundLock unlock];
+}
+
+- (void)receiveWirelessDatagram:(NSData *)datagram
+{
+    if (!_wirelessRunning || datagram.length < GBA_RFU_NET_HEADER_SIZE)
+    {
+        return;
+    }
+    
+    if (memcmp(datagram.bytes, "MRFU", 4) != 0)
+    {
+        return;
+    }
+    
+    [_inboundLock lock];
+    [_inboundDatagrams addObject:datagram];
+    [_inboundLock unlock];
+}
+
+- (nullable NSData *)generateWirelessDiscoveryProbe
+{
+    if (!_wirelessRunning)
+    {
+        return nil;
+    }
+    
+    struct GBARfuNetMessage msg = {};
+    msg.type = GBA_RFU_NET_HELLO;
+    msg.sessionId = 0;
+    msg.senderId = _wanSession.localId ? _wanSession.localId : 0x61;
+    msg.targetMask = 0;
+    msg.sequence = 0;
+    msg.payloadSize = 0;
+    
+    uint8_t buffer[GBA_RFU_NET_HEADER_SIZE];
+    size_t len = GBARfuNetEncode(&msg, buffer, sizeof(buffer));
+    if (len > 0)
+    {
+        return [NSData dataWithBytes:buffer length:len];
+    }
+    return nil;
+}
+
+- (void)getWirelessStatsWithSessionId:(nullable uint64_t *)sessionId
+                        sessionActive:(nullable BOOL *)sessionActive
+                     adapterConnected:(nullable BOOL *)adapterConnected
+                      retransmissions:(nullable uint64_t *)retransmissions
+                        parseFailures:(nullable uint64_t *)parseFailures
+                          overflowed:(nullable uint64_t *)overflowed
+{
+    if (!_wirelessRunning)
+    {
+        if (sessionId) *sessionId = 0;
+        if (sessionActive) *sessionActive = NO;
+        if (adapterConnected) *adapterConnected = NO;
+        if (retransmissions) *retransmissions = 0;
+        if (parseFailures) *parseFailures = 0;
+        if (overflowed) *overflowed = 0;
+        return;
+    }
+    
+    if (sessionId) *sessionId = _wanSession.sessionId;
+    if (sessionActive) *sessionActive = _wanSession.sessionActive;
+    if (adapterConnected) *adapterConnected = _wirelessAdapter.connected;
+    if (retransmissions) *retransmissions = _wanSession.retransmissions;
+    if (parseFailures) *parseFailures = _wanSession.parseFailures;
+    if (overflowed) *overflowed = _wanSession.overflowed;
 }
 
 @end
