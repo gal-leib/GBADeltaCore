@@ -219,6 +219,14 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     
     core->reset(core);
     
+    if (_wirelessRunning)
+    {
+        uint16_t localId = _wirelessIsHost ? 0x62 : 0x61;
+        GBASIOWirelessCreate(&_wirelessAdapter);
+        GBARfuWanSessionInit(&_wanSession, &_wirelessAdapter, _wirelessIsHost, _wirelessSessionId, localId);
+        core->setPeripheral(core, mPERIPH_GBA_LINK_PORT, &_wirelessAdapter.d);
+    }
+    
     self.core = core;
     self.isEmulating = YES;
 }
@@ -569,13 +577,6 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
 
 - (BOOL)startWirelessWithHost:(BOOL)isHost sessionId:(uint64_t)sessionId
 {
-    if (!self.core || !self.isEmulating)
-    {
-        return NO;
-    }
-    
-    [self stopWireless];
-    
     _wirelessIsHost = isHost;
     _wirelessSessionId = sessionId;
     if (isHost && _wirelessSessionId == 0)
@@ -587,6 +588,15 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
         }
     }
     
+    if (!self.core)
+    {
+        _wirelessRunning = YES;
+        return YES;
+    }
+    
+    [self stopWireless];
+    _wirelessRunning = YES;
+    
     uint16_t localId = isHost ? 0x62 : 0x61;
     
     GBASIOWirelessCreate(&_wirelessAdapter);
@@ -594,7 +604,6 @@ static uint8_t _readLux(struct GBALuminanceSource *source)
     
     self.core->setPeripheral(self.core, mPERIPH_GBA_LINK_PORT, &_wirelessAdapter.d);
     
-    _wirelessRunning = YES;
     return YES;
 }
 
