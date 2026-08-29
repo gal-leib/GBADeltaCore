@@ -10,19 +10,11 @@ import Foundation
 public final class GBAWirelessManager: NSObject, ObservableObject {
     public static let shared = GBAWirelessManager()
     
-    public enum Role: String, CaseIterable, Identifiable {
-        case host = "Host"
-        case join = "Join"
-        
-        public var id: String { rawValue }
-    }
-    
     public enum State: Equatable {
         case disconnected
         case connecting
-        case hostListening
-        case joinerProbing(probesSent: Int)
-        case connected(sessionId: UInt64)
+        case waitingForPartner(roomCode: String)
+        case connected(peerCount: Int, isHost: Bool, sessionId: UInt64)
         case error(String)
         
         public var description: String {
@@ -31,12 +23,15 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
                 return NSLocalizedString("Disconnected", comment: "")
             case .connecting:
                 return NSLocalizedString("Connecting to relay...", comment: "")
-            case .hostListening:
-                return NSLocalizedString("Host Listening (Waiting for peer...)", comment: "")
-            case .joinerProbing(let count):
-                return String(format: NSLocalizedString("Probing for Host (Sent %d probes)...", comment: ""), count)
-            case .connected(let sessionId):
-                return String(format: NSLocalizedString("Connected (Session: 0x%016llX)", comment: ""), sessionId)
+            case .waitingForPartner(let room):
+                return String(format: NSLocalizedString("Waiting for partner to join room '%@'...", comment: ""), room)
+            case .connected(let count, let isHost, _):
+                let roleStr = isHost ? NSLocalizedString("Host", comment: "") : NSLocalizedString("Client", comment: "")
+                if count >= 2 {
+                    return String(format: NSLocalizedString("Connected! (2/2 in room • %@)", comment: ""), roleStr)
+                } else {
+                    return String(format: NSLocalizedString("Connected (%@ • %d/2 in room)", comment: ""), roleStr, count)
+                }
             case .error(let message):
                 return String(format: NSLocalizedString("Error: %@", comment: ""), message)
             }
@@ -49,7 +44,7 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         
         public var isConnecting: Bool {
             switch self {
-            case .connecting, .hostListening, .joinerProbing:
+            case .connecting, .waitingForPartner:
                 return true
             default:
                 return false
@@ -71,8 +66,10 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
     @Published public private(set) var stats = TrafficStats()
     @Published public var serverURL: String = "wss://mgba-relay.gal-leibo.workers.dev"
     @Published public var roomCode: String = ""
-    @Published public var role: Role = .host
     @Published public var roomToken: String = ""
+    @Published public private(set) var assignedRole: String? = nil
+    @Published public private(set) var activeSessionId: UInt64 = 0
+    @Published public private(set) var peerCount: Int = 0
     
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -123,17 +120,13 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         self.state = .connecting
         self.probesSent = 0
         self.stats = TrafficStats()
+        self.assignedRole = nil
+        self.activeSessionId = 0
+        self.peerCount = 0
         
         let bridge = GBAEmulatorBridge.shared
-        let isHost = (self.role == .host)
-        
         bridge.wirelessSendDatagramHandler = { [weak self] datagram in
             self?.sendDatagram(datagram)
-        }
-        
-        guard bridge.startWireless(withHost: isHost, sessionId: 0) else {
-            self.state = .error(NSLocalizedString("Failed to initialize wireless adapter in core. Start a game first.", comment: ""))
-            return
         }
         
         let session = URLSession(configuration: .default)
@@ -143,14 +136,6 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         
         wsTask.resume()
         self.listenForMessages()
-        
-        if isHost {
-            self.state = .hostListening
-        } else {
-            self.state = .joinerProbing(probesSent: 0)
-            self.startProbeTimer()
-        }
-        
         self.startStatsTimer()
     }
     
@@ -169,6 +154,9 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         bridge.wirelessSendDatagramHandler = nil
         bridge.stopWireless()
         
+        self.assignedRole = nil
+        self.activeSessionId = 0
+        self.peerCount = 0
         self.state = .disconnected
     }
     
@@ -203,9 +191,7 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
                 case .data(let data):
                     self.handleReceivedData(data)
                 case .string(let text):
-                    if let data = text.data(using: .utf8) {
-                        self.handleReceivedData(data)
-                    }
+                    self.handleReceivedText(text)
                 @unknown default:
                     break
                 }
@@ -215,6 +201,63 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     self.handleError(error.localizedDescription)
                 }
+            }
+        }
+    }
+    
+    private func handleReceivedText(_ text: String) {
+        guard let data = text.data(using: .utf8),
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let type = json["type"] as? String else {
+            return
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let trimmedRoom = self.roomCode.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            switch type {
+            case "assigned_role":
+                let role = json["role"] as? String ?? "host"
+                let isHost = (role == "host")
+                let sessionIdHex = json["sessionId"] as? String ?? ""
+                let cleanHex = sessionIdHex.hasPrefix("0x") ? String(sessionIdHex.dropFirst(2)) : sessionIdHex
+                let sessionId = UInt64(cleanHex, radix: 16) ?? 0
+                let count = json["peerCount"] as? Int ?? 1
+                
+                self.assignedRole = role
+                self.activeSessionId = sessionId
+                self.peerCount = count
+                
+                let bridge = GBAEmulatorBridge.shared
+                if !bridge.startWireless(withHost: isHost, sessionId: sessionId) {
+                    self.handleError(NSLocalizedString("Failed to initialize wireless adapter in core. Start a game first.", comment: ""))
+                    return
+                }
+                
+                if count < 2 {
+                    self.state = .waitingForPartner(roomCode: trimmedRoom)
+                } else {
+                    self.state = .connected(peerCount: count, isHost: isHost, sessionId: sessionId)
+                }
+                
+                if !isHost {
+                    self.startProbeTimer()
+                }
+                
+            case "peer_joined":
+                let count = json["peerCount"] as? Int ?? 2
+                self.peerCount = count
+                let isHost = (self.assignedRole == "host")
+                self.state = .connected(peerCount: count, isHost: isHost, sessionId: self.activeSessionId)
+                
+            case "peer_left":
+                let count = json["peerCount"] as? Int ?? 1
+                self.peerCount = count
+                self.state = .waitingForPartner(roomCode: trimmedRoom)
+                
+            default:
+                break
             }
         }
     }
@@ -236,11 +279,10 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         self.probeTimer?.invalidate()
         self.probeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            if case .joinerProbing = self.state {
+            if self.assignedRole == "client" {
                 if let probe = GBAEmulatorBridge.shared.generateWirelessDiscoveryProbe() {
                     self.sendDatagram(probe)
                     self.probesSent += 1
-                    self.state = .joinerProbing(probesSent: self.probesSent)
                 }
             }
         }
@@ -274,8 +316,13 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         if sessionActive.boolValue && sessionId != 0 {
             self.probeTimer?.invalidate()
             self.probeTimer = nil
-            if self.state != .connected(sessionId: sessionId) {
-                self.state = .connected(sessionId: sessionId)
+            let isHost = (self.assignedRole == "host")
+            if case .connected(let count, _, _) = self.state {
+                if count != self.peerCount {
+                    self.state = .connected(peerCount: self.peerCount, isHost: isHost, sessionId: sessionId)
+                }
+            } else {
+                self.state = .connected(peerCount: max(self.peerCount, 2), isHost: isHost, sessionId: sessionId)
             }
         }
     }
@@ -286,3 +333,4 @@ public final class GBAWirelessManager: NSObject, ObservableObject {
         self.state = .error(error)
     }
 }
+
